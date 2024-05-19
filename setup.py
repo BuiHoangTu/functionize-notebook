@@ -3,7 +3,7 @@ from setuptools import find_packages
 
 setup(
     name="functionize-notebook",
-    version="0.0.1",
+    version="0.0.2",
     author="Bui Hoang Tu",
     author_email="bhtu.work@gmail.com",
     url="https://github.com/BuiHoangTu/functionize-notebook/tree/release",
