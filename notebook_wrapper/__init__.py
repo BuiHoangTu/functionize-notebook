@@ -37,7 +37,7 @@ class NotebookWrapper:
 
     def run(self, *args, **kwargs) -> Any | List[Any]:
         # map input
-        variableMapping = dict(zip(self.inputVariable, args))
+        variableMapping = dict(zip(self.inputVariable, list(args)))
         variableMapping.update(**kwargs)
 
         nb = nbformat.read(self.notebook, as_version=nbformat.NO_CONVERT)
@@ -54,7 +54,7 @@ class NotebookWrapper:
             inputPath.parent.mkdir(parents=True, exist_ok=True)
 
             # add input values
-            pickle.dump(variableMapping, inputPath.open("wb+"))
+            inputPath.write_bytes(pickle.dumps(variableMapping))
             # wait for nb input file
             for _ in range(50):
                 if inputPath.exists():
@@ -78,11 +78,9 @@ class NotebookWrapper:
                 from pathlib import Path
                 import pickle
                 
-                with Path("%s").open("rb") as inputFile:
-                    inputVariables = pickle.load(inputFile)
-                    for key, value in inputVariables.items():
-                        globals()[key] = value
-                        pass
+                inputVariables = pickle.loads(Path("%s").read_bytes())
+                for key, value in inputVariables.items():
+                    globals()[key] = value
                     pass
             """
                 % inputPath
@@ -113,9 +111,7 @@ class NotebookWrapper:
                 import pickle
                 
                 outputVariable = %s
-                with Path("%s").open("wb+") as inputPath:
-                    pickle.dump(outputVariable, inputPath)
-                pass
+                Path("%s").write_bytes(pickle.dumps(outputVariable))
             """
                 % (requestVars, outputPath)
             )
@@ -136,7 +132,7 @@ class NotebookWrapper:
             else:
                 raise IOError(outputPath.__str__() + " took too much time to write.")
 
-            res = pickle.load(outputPath.open("rb"))
+            res = pickle.loads(outputPath.read_bytes())
 
             return res
         else:
