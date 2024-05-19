@@ -33,12 +33,12 @@ class NotebookWrapper:
         pass
 
     def __call__(self, *args, **kwargs):
-        return self.run(args, kwargs)
+        return self.run(*args, *kwargs)
 
     def run(self, *args, **kwargs) -> Any | List[Any]:
         # map input
-        variableMapping = dict(zip(self.inputVariable, list(args)))
-        variableMapping.update(**kwargs)
+        variableMapping = dict(zip(self.inputVariable, args))
+        variableMapping.update(kwargs)
 
         nb = nbformat.read(self.notebook, as_version=nbformat.NO_CONVERT)
 
