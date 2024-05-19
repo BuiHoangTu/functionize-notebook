@@ -11,7 +11,8 @@ setup(
     packages=find_packages(),
     package_dir={"notebook_wrapper": "notebook_wrapper"},
     description="run notebook like a function",
-    long_description=open("README.rst").read(),
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
     install_requires=["nbformat", "nbconvert"],
     classifiers=[
         "License :: OSI Approved :: MIT License",
