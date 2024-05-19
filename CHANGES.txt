@@ -5,3 +5,7 @@
 0.0.2
 =====
 - Fix input arguments binding
+
+0.0.3
+=====
+- Use github actions to publish 
