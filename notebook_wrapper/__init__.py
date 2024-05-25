@@ -71,7 +71,7 @@ class NotebookWrapper:
             else:
                 raise IOError(inputPath.__str__() + " took too much time to write.")
 
-            inputIndex = self._insertInputCell(inputPath)
+            inputIndex = self._insertInputCell(nb, inputPath)
 
         outputIndex = -1
         if self.outputVariable is not None:
@@ -85,7 +85,7 @@ class NotebookWrapper:
             )
             outputPath.parent.mkdir(parents=True, exist_ok=True)
 
-            outputIndex = self._insertOutputCell(outputPath)
+            outputIndex = self._insertOutputCell(nb, outputPath)
             pass
 
         ep = ExecutePreprocessor(timeout=None)
@@ -103,10 +103,10 @@ class NotebookWrapper:
                     except Exception:
                         varStr = "This variable could not be represent in text."
                     mdText += f"- {variable}: {varStr}\n"
-                
+
                 mdCell = nbbase.new_markdown_cell(source=mdText)
                 resultNb.cells.insert(inputIndex, mdCell)
-                
+
             if outputIndex >= 0:
                 resultNb.cells.pop(outputIndex)
 
@@ -130,9 +130,7 @@ class NotebookWrapper:
         else:
             return None
 
-    def _insertInputCell(self, inputPath: Path):
-        nb = nbformat.read(self.notebook, as_version=nbformat.NO_CONVERT)
-
+    def _insertInputCell(self, nb, inputPath: Path):
         # identify input cell
         inputIndex = 0
         for i, cell in enumerate(nb.cells):
@@ -158,12 +156,7 @@ class NotebookWrapper:
 
         return inputIndex + 1
 
-    def _insertOutputCell(
-        self,
-        outputPath: Path,
-    ):
-        nb = nbformat.read(self.notebook, as_version=nbformat.NO_CONVERT)
-
+    def _insertOutputCell(self, nb, outputPath: Path):
         if isinstance(self.outputVariable, List):
             requestVars = "[" + ",".join(self.outputVariable) + "]"
         else:
