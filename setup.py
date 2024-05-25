@@ -1,9 +1,19 @@
 from distutils.core import setup
 from setuptools import find_packages
 
+
+version = "0.0.1"
+# Extract version from CHANGES.md
+with open("./CHANGES.md", "r") as file:
+        for line in file:
+            if line.strip():
+                version = line.strip()
+                break
+
+
 setup(
     name="functionize-notebook",
-    version="0.0.4",
+    version=version,
     author="Bui Hoang Tu",
     author_email="bhtu.work@gmail.com",
     url="https://github.com/BuiHoangTu/functionize-notebook/tree/release",
