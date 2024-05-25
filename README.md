@@ -48,6 +48,18 @@ This will overide value of a. Now a = 8. Variable c = 9 is also injected to note
 
 You can also pass other datatype. However, Any modifications made by notebook won't be reflected on the object. You can still return the object to get the modifications.
 
+## Export notebook
+
+Example: You want to rerun notebook with different inputs.
+
+```Python
+for i in range(100):
+   calculateSum.export(f"outputNb-{str(i)}.ipynb", 5 * i, 10 + i)
+
+```
+
+`export` return the same result with running normally.
+
 More information and code samples available in the [examples folder](./examples/).
 
 
