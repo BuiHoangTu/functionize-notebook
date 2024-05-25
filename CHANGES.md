@@ -1,3 +1,7 @@
+0.0.6
+=====
+- Fix nb is not updated
+
 0.0.5
 =====
 - Add export notebook
