@@ -64,29 +64,7 @@ class NotebookWrapper:
             else:
                 raise IOError(inputPath.__str__() + " took too much time to write.")
 
-            # identify input cell
-            inputIndex = 0
-            for i, cell in enumerate(nb.cells):
-                if "tags" in cell.metadata and self.inputTag in cell.metadata["tags"]:
-                    inputIndex = i
-                    break
-                pass
-
-            # add input cell to nb
-            newCell = nbbase.new_code_cell(
-                source="""
-                from pathlib import Path
-                import pickle
-                
-                inputVariables = pickle.loads(Path("%s").read_bytes())
-                for key, value in inputVariables.items():
-                    globals()[key] = value
-                    pass
-            """
-                % inputPath
-            )
-
-            nb.cells.insert(inputIndex + 1, newCell)
+            self._insertInputCell(inputPath)
 
         if self.outputVariable is not None:
             # add saving path for output
@@ -99,24 +77,7 @@ class NotebookWrapper:
             )
             outputPath.parent.mkdir(parents=True, exist_ok=True)
 
-            # add output cell to nb
-            if isinstance(self.outputVariable, List):
-                requestVars = "[" + ",".join(self.outputVariable) + "]"
-            else:
-                requestVars = self.outputVariable
-
-            newCell = nbbase.new_code_cell(
-                source="""
-                from pathlib import Path
-                import pickle
-                
-                outputVariable = %s
-                Path("%s").write_bytes(pickle.dumps(outputVariable))
-            """
-                % (requestVars, outputPath)
-            )
-
-            nb.cells.append(newCell)
+            self._insertOutputCell(outputPath)
             pass
 
         ep = ExecutePreprocessor(timeout=None)
@@ -137,3 +98,56 @@ class NotebookWrapper:
             return res
         else:
             return None
+
+    def _insertInputCell(self, inputPath: Path):
+        nb = nbformat.read(self.notebook, as_version=nbformat.NO_CONVERT)
+
+        # identify input cell
+        inputIndex = 0
+        for i, cell in enumerate(nb.cells):
+            if "tags" in cell.metadata and self.inputTag in cell.metadata["tags"]:
+                inputIndex = i
+                break
+            pass
+
+        newCell = nbbase.new_code_cell(
+            source="""
+                from pathlib import Path
+                import pickle
+                
+                inputVariables = pickle.loads(Path("%s").read_bytes())
+                for key, value in inputVariables.items():
+                    globals()[key] = value
+                    pass
+            """
+            % inputPath
+        )
+
+        nb.cells.insert(inputIndex + 1, newCell)
+
+        return inputIndex + 1
+
+    def _insertOutputCell(
+        self,
+        outputPath: Path,
+    ):
+        nb = nbformat.read(self.notebook, as_version=nbformat.NO_CONVERT)
+
+        if isinstance(self.outputVariable, List):
+            requestVars = "[" + ",".join(self.outputVariable) + "]"
+        else:
+            requestVars = self.outputVariable
+        newCell = nbbase.new_code_cell(
+            source="""
+                from pathlib import Path
+                import pickle
+                
+                outputVariable = %s
+                Path("%s").write_bytes(pickle.dumps(outputVariable))
+            """
+            % (requestVars, outputPath)
+        )
+
+        nb.cells.append(newCell)
+
+        return len(nb.cells) - 1
