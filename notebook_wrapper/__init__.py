@@ -36,12 +36,19 @@ class NotebookWrapper:
         return self.run(*args, *kwargs)
 
     def run(self, *args, **kwargs) -> Any | List[Any]:
+        return self.export(None, *args, **kwargs)
+
+    def export(self, _outputNotebook: str | Path | None, *args, **kwargs):
+        if isinstance(_outputNotebook, str):
+            _outputNotebook = Path(_outputNotebook)
+
         # map input
         variableMapping = dict(zip(self.inputVariable, args))
         variableMapping.update(kwargs)
 
         nb = nbformat.read(self.notebook, as_version=nbformat.NO_CONVERT)
 
+        inputIndex = -1
         if len(variableMapping) > 0:
             # add saving path for input
             inputPath = Path(
@@ -64,8 +71,9 @@ class NotebookWrapper:
             else:
                 raise IOError(inputPath.__str__() + " took too much time to write.")
 
-            self._insertInputCell(inputPath)
+            inputIndex = self._insertInputCell(inputPath)
 
+        outputIndex = -1
         if self.outputVariable is not None:
             # add saving path for output
             outputPath = Path(
@@ -77,11 +85,34 @@ class NotebookWrapper:
             )
             outputPath.parent.mkdir(parents=True, exist_ok=True)
 
-            self._insertOutputCell(outputPath)
+            outputIndex = self._insertOutputCell(outputPath)
             pass
 
         ep = ExecutePreprocessor(timeout=None)
         resultNb, _ = ep.preprocess(nb, {"metadata": {"path": self.notebook.parent}})
+
+        if _outputNotebook is not None:
+            if inputIndex >= 0:
+                resultNb.cells.pop(inputIndex)
+
+                # Add markdown cell noting injected variables
+                mdText = "`functionize-notebook` has modified this notebook during execution. The following variables have been injected:\n\n"
+                for variable, varValue in variableMapping.items():
+                    try:
+                        varStr = str(varValue)
+                    except Exception:
+                        varStr = "This variable could not be represent in text."
+                    mdText += f"- {variable}: {varStr}\n"
+                
+                mdCell = nbbase.new_markdown_cell(source=mdText)
+                resultNb.cells.insert(inputIndex, mdCell)
+                
+            if outputIndex >= 0:
+                resultNb.cells.pop(outputIndex)
+
+            with open(_outputNotebook, "w") as f:
+                nbformat.write(resultNb, f)
+                pass
 
         if self.outputVariable is not None:
             # wait for nb output
