@@ -17,6 +17,7 @@ class NotebookWrapper:
         inputVariable: str | List[str] | None,
         outputVariable: str | List[str] | None,
         inputTag: str = "input",
+        allowError: bool = False,
     ):
         self.notebook = Path(notebookFile)
 
@@ -29,6 +30,8 @@ class NotebookWrapper:
         self.outputVariable = outputVariable
 
         self.inputTag = inputTag
+        
+        self.allowError = allowError
 
         pass
 
@@ -88,7 +91,7 @@ class NotebookWrapper:
             outputIndex = self._insertOutputCell(nb, outputPath)
             pass
 
-        ep = ExecutePreprocessor(timeout=None)
+        ep = ExecutePreprocessor(timeout=None, allow_errors=self.allowError)
         resultNb, _ = ep.preprocess(nb, {"metadata": {"path": self.notebook.parent}})
 
         if _outputNotebook is not None:
