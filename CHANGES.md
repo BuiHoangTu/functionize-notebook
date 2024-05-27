@@ -1,3 +1,7 @@
+0.0.7
+=====
+- Add allowing errors while executing notebook
+
 0.0.6
 =====
 - Fix nb is not updated
