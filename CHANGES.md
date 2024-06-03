@@ -1,3 +1,7 @@
+0.0.8
+=====
+- Improve injection's stability with dill
+
 0.0.7
 =====
 - Add allowing errors while executing notebook
