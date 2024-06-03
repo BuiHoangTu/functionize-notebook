@@ -23,7 +23,7 @@ setup(
     description="run notebook like a function",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    install_requires=["nbformat", "nbconvert", "ipykernel"],
+    install_requires=["nbformat", "nbconvert", "ipykernel", "dill"],
     classifiers=[
         "License :: OSI Approved :: MIT License",
     ],

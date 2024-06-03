@@ -1,4 +1,4 @@
-import pickle
+import dill as pickle
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -145,7 +145,7 @@ class NotebookWrapper:
         newCell = nbbase.new_code_cell(
             source="""
                 from pathlib import Path
-                import pickle
+                import dill as pickle
                 
                 inputVariables = pickle.loads(Path("%s").read_bytes())
                 for key, value in inputVariables.items():
@@ -167,7 +167,7 @@ class NotebookWrapper:
         newCell = nbbase.new_code_cell(
             source="""
                 from pathlib import Path
-                import pickle
+                import dill as pickle
                 
                 outputVariable = %s
                 Path("%s").write_bytes(pickle.dumps(outputVariable))
