@@ -86,7 +86,7 @@ class NotebookWrapper:
         mdCell = nbbase.new_markdown_cell(source=mdText)
         resultNb.cells[self.inputIndex] =  mdCell
 
-        resultNb.cells.pop(self.outputIndex)
+        resultNb.cells[self.outputIndex] = nbbase.new_markdown_cell(source="")
 
         with open(_outputNotebook, "w") as f:
             nbformat.write(resultNb, f)
