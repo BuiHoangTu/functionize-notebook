@@ -1,3 +1,7 @@
+0.0.9
+=====
+- save input's params space of normal running
+
 0.0.8
 =====
 - Improve injection's stability with dill
