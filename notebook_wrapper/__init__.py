@@ -66,9 +66,11 @@ class NotebookWrapper:
     def run(self, *args, **kwargs) -> Any | List[Any]:
         return self._process(*args, **kwargs)[1]
 
-    def export(self, _outputNotebook: str | Path, *args, **kwargs):
+    def export(self, _outputNotebook: str | Path, *args, **kwargs) -> Any | List[Any]:
         if isinstance(_outputNotebook, str):
             _outputNotebook = Path(_outputNotebook)
+            
+        _outputNotebook.parent.mkdir(parents=True, exist_ok=True)
         
         variableMapping, res, resultNb = self._process(*args, **kwargs)
         
@@ -89,7 +91,8 @@ class NotebookWrapper:
         with open(_outputNotebook, "w") as f:
             nbformat.write(resultNb, f)
             pass
-        pass
+        
+        return res
     
     def _process(self, *args, **kwargs):
         if self.interactive:
