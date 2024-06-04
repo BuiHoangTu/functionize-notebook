@@ -1,3 +1,7 @@
+0.0.11
+=====
+- Fix error on second run
+
 0.0.10
 =====
 - Allow specify notebook context
