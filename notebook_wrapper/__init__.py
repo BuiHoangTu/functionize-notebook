@@ -33,7 +33,7 @@ class NotebookWrapper:
             interactive (bool, optional): Reload notebook every run. Defaults to False.
         """
         
-        self.notebook = Path(notebookFile)
+        self.notebookPath = Path(notebookFile)
 
         if inputVariable is None:
             inputVariable = []
@@ -100,7 +100,7 @@ class NotebookWrapper:
             inputPath = Path(
                 tempfile.gettempdir(),
                 "BHTuNbWrapper",
-                self.notebook.stem,
+                self.notebookPath.stem,
                 "input",
                 datetime.now().__str__() + ".pkl",
             )
@@ -124,7 +124,7 @@ class NotebookWrapper:
             outputPath = Path(
                 tempfile.gettempdir(),
                 "BHTuNbWrapper",
-                self.notebook.stem,
+                self.notebookPath.stem,
                 "output",
                 datetime.now().__str__() + ".pkl",
             )
@@ -134,7 +134,7 @@ class NotebookWrapper:
             pass
 
         ep = ExecutePreprocessor(timeout=None, allow_errors=self.allowError)
-        resultNb, _ = ep.preprocess(nb, {"metadata": {"path": self.notebook.parent}})
+        resultNb, _ = ep.preprocess(nb, {"metadata": {"path": self.notebookPath.parent}})
 
             
 
@@ -155,7 +155,7 @@ class NotebookWrapper:
             return variableMapping, None, resultNb
         
     def _readNotebook(self):
-        self.nb = nbformat.read(self.notebook, as_version=nbformat.NO_CONVERT)
+        self.nb = nbformat.read(self.notebookPath, as_version=nbformat.NO_CONVERT)
         self.inputIndex = -1
         for i, cell in enumerate(self.nb.cells):
             if "tags" in cell.metadata and self.inputTag in cell.metadata["tags"]:
