@@ -17,8 +17,22 @@ class NotebookWrapper:
         inputVariable: str | List[str] | None,
         outputVariable: str | List[str] | None,
         inputTag: str = "input",
+        outputTag: str = "output",
         allowError: bool = False,
+        interactive: bool = False,
     ):
+        """_summary_
+
+        Args:
+            notebookFile (str | Path): _description_
+            inputVariable (str | List[str] | None): _description_
+            outputVariable (str | List[str] | None): _description_
+            inputTag (str, optional): Currently do nothing. Defaults to "input".
+            outputTag (str, optional): _description_. Defaults to "output".
+            allowError (bool, optional): _description_. Defaults to False.
+            interactive (bool, optional): Reload notebook every run. Defaults to False.
+        """
+        
         self.notebook = Path(notebookFile)
 
         if inputVariable is None:
@@ -32,6 +46,11 @@ class NotebookWrapper:
         self.inputTag = inputTag
         
         self.allowError = allowError
+        
+        self.interactive = interactive
+        
+        if not self.interactive:
+            self._readNotebook()
 
         pass
 
@@ -39,19 +58,43 @@ class NotebookWrapper:
         return self.run(*args, *kwargs)
 
     def run(self, *args, **kwargs) -> Any | List[Any]:
-        return self.export(None, *args, **kwargs)
+        return self._process(*args, **kwargs)[1]
 
-    def export(self, _outputNotebook: str | Path | None, *args, **kwargs):
+    def export(self, _outputNotebook: str | Path, *args, **kwargs):
         if isinstance(_outputNotebook, str):
             _outputNotebook = Path(_outputNotebook)
+        
+        variableMapping, res, resultNb = self._process(*args, **kwargs)
+        
+        # Add markdown cell noting injected variables
+        mdText = "`functionize-notebook` has modified this notebook during execution. The following variables have been injected:\n\n"
+        for variable, varValue in variableMapping.items():
+            try:
+                varStr = str(varValue)
+            except Exception:
+                varStr = "This variable could not be represent in text."
+            mdText += f"- {variable}: {varStr}\n"
 
+        mdCell = nbbase.new_markdown_cell(source=mdText)
+        resultNb.cells[self.inputIndex] =  mdCell
+
+        resultNb.cells.pop(self.outputIndex)
+
+        with open(_outputNotebook, "w") as f:
+            nbformat.write(resultNb, f)
+            pass
+        pass
+    
+    def _process(self, *args, **kwargs):
+        if self.interactive:
+            self._readNotebook()
+        
         # map input
         variableMapping = dict(zip(self.inputVariable, args))
         variableMapping.update(kwargs)
 
-        nb = nbformat.read(self.notebook, as_version=nbformat.NO_CONVERT)
+        nb = self.nb
 
-        inputIndex = -1
         if len(variableMapping) > 0:
             # add saving path for input
             inputPath = Path(
@@ -74,9 +117,8 @@ class NotebookWrapper:
             else:
                 raise IOError(inputPath.__str__() + " took too much time to write.")
 
-            inputIndex = self._insertInputCell(nb, inputPath)
+            self._insertInputCell(nb, inputPath)
 
-        outputIndex = -1
         if self.outputVariable is not None:
             # add saving path for output
             outputPath = Path(
@@ -88,34 +130,13 @@ class NotebookWrapper:
             )
             outputPath.parent.mkdir(parents=True, exist_ok=True)
 
-            outputIndex = self._insertOutputCell(nb, outputPath)
+            self._insertOutputCell(nb, outputPath)
             pass
 
         ep = ExecutePreprocessor(timeout=None, allow_errors=self.allowError)
         resultNb, _ = ep.preprocess(nb, {"metadata": {"path": self.notebook.parent}})
 
-        if _outputNotebook is not None:
-            if inputIndex >= 0:
-                resultNb.cells.pop(inputIndex)
-
-                # Add markdown cell noting injected variables
-                mdText = "`functionize-notebook` has modified this notebook during execution. The following variables have been injected:\n\n"
-                for variable, varValue in variableMapping.items():
-                    try:
-                        varStr = str(varValue)
-                    except Exception:
-                        varStr = "This variable could not be represent in text."
-                    mdText += f"- {variable}: {varStr}\n"
-
-                mdCell = nbbase.new_markdown_cell(source=mdText)
-                resultNb.cells.insert(inputIndex, mdCell)
-
-            if outputIndex >= 0:
-                resultNb.cells.pop(outputIndex)
-
-            with open(_outputNotebook, "w") as f:
-                nbformat.write(resultNb, f)
-                pass
+            
 
         if self.outputVariable is not None:
             # wait for nb output
@@ -129,19 +150,28 @@ class NotebookWrapper:
 
             res = pickle.loads(outputPath.read_bytes())
 
-            return res
+            return variableMapping, res, resultNb
         else:
-            return None
-
-    def _insertInputCell(self, nb, inputPath: Path):
-        # identify input cell
-        inputIndex = 0
-        for i, cell in enumerate(nb.cells):
+            return variableMapping, None, resultNb
+        
+    def _readNotebook(self):
+        self.nb = nbformat.read(self.notebook, as_version=nbformat.NO_CONVERT)
+        self.inputIndex = -1
+        for i, cell in enumerate(self.nb.cells):
             if "tags" in cell.metadata and self.inputTag in cell.metadata["tags"]:
-                inputIndex = i
+                self.inputIndex = i + 1
                 break
             pass
+        
+        inCell = nbbase.new_code_cell(source="")
+        self.nb.cells.insert(self.inputIndex, inCell)
+        
+        self.outputIndex = len(self.nb.cells)
+        outCell = nbbase.new_code_cell(source="")
+        self.nb.cells.append(outCell)
+        
 
+    def _insertInputCell(self, nb, inputPath: Path):
         newCell = nbbase.new_code_cell(
             source="""
                 from pathlib import Path
@@ -155,9 +185,7 @@ class NotebookWrapper:
             % inputPath
         )
 
-        nb.cells.insert(inputIndex + 1, newCell)
-
-        return inputIndex + 1
+        nb.cells[self.inputIndex] = newCell
 
     def _insertOutputCell(self, nb, outputPath: Path):
         if isinstance(self.outputVariable, List):
@@ -175,6 +203,4 @@ class NotebookWrapper:
             % (requestVars, outputPath)
         )
 
-        nb.cells.append(newCell)
-
-        return len(nb.cells) - 1
+        nb.cells[self.outputIndex] = newCell
