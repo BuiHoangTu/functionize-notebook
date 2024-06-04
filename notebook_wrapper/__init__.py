@@ -20,6 +20,7 @@ class NotebookWrapper:
         outputTag: str = "output",
         allowError: bool = False,
         interactive: bool = False,
+        nbContext: Path | None = None,
     ):
         """_summary_
 
@@ -51,6 +52,11 @@ class NotebookWrapper:
         
         if not self.interactive:
             self._readNotebook()
+            
+        if nbContext is not None:
+            self.nbContext = nbContext
+        else:
+            self.nbContext = self.notebookPath.parent
 
         pass
 
@@ -134,7 +140,7 @@ class NotebookWrapper:
             pass
 
         ep = ExecutePreprocessor(timeout=None, allow_errors=self.allowError)
-        resultNb, _ = ep.preprocess(nb, {"metadata": {"path": self.notebookPath.parent}})
+        resultNb, _ = ep.preprocess(nb, {"metadata": {"path": self.nbContext}})
 
             
 
