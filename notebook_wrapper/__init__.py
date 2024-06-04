@@ -20,6 +20,7 @@ class NotebookWrapper:
         outputTag: str = "output",
         allowError: bool = False,
         interactive: bool = False,
+        nbContext: Path | None = None,
     ):
         """_summary_
 
@@ -33,7 +34,7 @@ class NotebookWrapper:
             interactive (bool, optional): Reload notebook every run. Defaults to False.
         """
         
-        self.notebook = Path(notebookFile)
+        self.notebookPath = Path(notebookFile)
 
         if inputVariable is None:
             inputVariable = []
@@ -51,6 +52,11 @@ class NotebookWrapper:
         
         if not self.interactive:
             self._readNotebook()
+            
+        if nbContext is not None:
+            self.nbContext = nbContext
+        else:
+            self.nbContext = self.notebookPath.parent
 
         pass
 
@@ -60,9 +66,11 @@ class NotebookWrapper:
     def run(self, *args, **kwargs) -> Any | List[Any]:
         return self._process(*args, **kwargs)[1]
 
-    def export(self, _outputNotebook: str | Path, *args, **kwargs):
+    def export(self, _outputNotebook: str | Path, *args, **kwargs) -> Any | List[Any]:
         if isinstance(_outputNotebook, str):
             _outputNotebook = Path(_outputNotebook)
+            
+        _outputNotebook.parent.mkdir(parents=True, exist_ok=True)
         
         variableMapping, res, resultNb = self._process(*args, **kwargs)
         
@@ -83,7 +91,8 @@ class NotebookWrapper:
         with open(_outputNotebook, "w") as f:
             nbformat.write(resultNb, f)
             pass
-        pass
+        
+        return res
     
     def _process(self, *args, **kwargs):
         if self.interactive:
@@ -100,7 +109,7 @@ class NotebookWrapper:
             inputPath = Path(
                 tempfile.gettempdir(),
                 "BHTuNbWrapper",
-                self.notebook.stem,
+                self.notebookPath.stem,
                 "input",
                 datetime.now().__str__() + ".pkl",
             )
@@ -124,7 +133,7 @@ class NotebookWrapper:
             outputPath = Path(
                 tempfile.gettempdir(),
                 "BHTuNbWrapper",
-                self.notebook.stem,
+                self.notebookPath.stem,
                 "output",
                 datetime.now().__str__() + ".pkl",
             )
@@ -134,7 +143,7 @@ class NotebookWrapper:
             pass
 
         ep = ExecutePreprocessor(timeout=None, allow_errors=self.allowError)
-        resultNb, _ = ep.preprocess(nb, {"metadata": {"path": self.notebook.parent}})
+        resultNb, _ = ep.preprocess(nb, {"metadata": {"path": self.nbContext}})
 
             
 
@@ -155,7 +164,7 @@ class NotebookWrapper:
             return variableMapping, None, resultNb
         
     def _readNotebook(self):
-        self.nb = nbformat.read(self.notebook, as_version=nbformat.NO_CONVERT)
+        self.nb = nbformat.read(self.notebookPath, as_version=nbformat.NO_CONVERT)
         self.inputIndex = -1
         for i, cell in enumerate(self.nb.cells):
             if "tags" in cell.metadata and self.inputTag in cell.metadata["tags"]:

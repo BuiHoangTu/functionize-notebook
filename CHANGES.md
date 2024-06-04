@@ -1,3 +1,7 @@
+0.0.10
+=====
+- Allow specify notebook context
+
 0.0.9
 =====
 - save input's params space of normal running
