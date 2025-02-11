@@ -84,9 +84,10 @@ class NotebookWrapper:
             mdText += f"- {variable}: {varStr}\n"
 
         mdCell = nbbase.new_markdown_cell(source=mdText)
-        resultNb.cells[self.inputIndex] =  mdCell
+        mdCell.metadata["generated-by"] = "functionize-notebook"
+        resultNb.cells[self.inputIndex] = mdCell
 
-        resultNb.cells[self.outputIndex] = nbbase.new_markdown_cell(source="")
+        del resultNb.cells[self.outputIndex]
 
         with open(_outputNotebook, "w") as f:
             nbformat.write(resultNb, f)
