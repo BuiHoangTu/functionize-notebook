@@ -21,6 +21,7 @@ class NotebookWrapper:
         allowError: bool = False,
         interactive: bool = False,
         nbContext: Path | None = None,
+        cleanOldGenerated: bool = True,
     ):
         """_summary_
 
@@ -33,7 +34,7 @@ class NotebookWrapper:
             allowError (bool, optional): _description_. Defaults to False.
             interactive (bool, optional): Reload notebook every run. Defaults to False.
         """
-        
+
         self.notebookPath = Path(notebookFile)
 
         if inputVariable is None:
@@ -45,18 +46,20 @@ class NotebookWrapper:
         self.outputVariable = outputVariable
 
         self.inputTag = inputTag
-        
+
         self.allowError = allowError
-        
+
         self.interactive = interactive
-        
+
         if not self.interactive:
             self._readNotebook()
-            
+
         if nbContext is not None:
             self.nbContext = nbContext
         else:
             self.nbContext = self.notebookPath.parent
+
+        self.cleanOldGenerated = cleanOldGenerated
 
         pass
 
@@ -69,11 +72,11 @@ class NotebookWrapper:
     def export(self, _outputNotebook: str | Path, *args, **kwargs) -> Any | List[Any]:
         if isinstance(_outputNotebook, str):
             _outputNotebook = Path(_outputNotebook)
-            
+
         _outputNotebook.parent.mkdir(parents=True, exist_ok=True)
-        
+
         variableMapping, res, resultNb = self._process(*args, **kwargs)
-        
+
         # Add markdown cell noting injected variables
         mdText = "`functionize-notebook` has modified this notebook during execution. The following variables have been injected:\n\n"
         for variable, varValue in variableMapping.items():
@@ -84,20 +87,21 @@ class NotebookWrapper:
             mdText += f"- {variable}: {varStr}\n"
 
         mdCell = nbbase.new_markdown_cell(source=mdText)
-        resultNb.cells[self.inputIndex] =  mdCell
+        mdCell.metadata["generated-by"] = "functionize-notebook"
+        resultNb.cells[self.inputIndex] = mdCell
 
-        resultNb.cells[self.outputIndex] = nbbase.new_markdown_cell(source="")
+        del resultNb.cells[self.outputIndex]
 
         with open(_outputNotebook, "w") as f:
             nbformat.write(resultNb, f)
             pass
-        
+
         return res
-    
+
     def _process(self, *args, **kwargs):
         if self.interactive:
             self._readNotebook()
-        
+
         # map input
         variableMapping = dict(zip(self.inputVariable, args))
         variableMapping.update(kwargs)
@@ -145,8 +149,6 @@ class NotebookWrapper:
         ep = ExecutePreprocessor(timeout=None, allow_errors=self.allowError)
         resultNb, _ = ep.preprocess(nb, {"metadata": {"path": self.nbContext}})
 
-            
-
         if self.outputVariable is not None:
             # wait for nb output
             for _ in range(50):
@@ -162,23 +164,31 @@ class NotebookWrapper:
             return variableMapping, res, resultNb
         else:
             return variableMapping, None, resultNb
-        
+
     def _readNotebook(self):
         self.nb = nbformat.read(self.notebookPath, as_version=nbformat.NO_CONVERT)
+
+        # clean old generated
+        if self.cleanOldGenerated:
+            self.nb.cells = [
+                cell
+                for cell in self.nb.cells
+                if not (cell.metadata.get("generated-by") == "functionize-notebook")
+            ]
+
         self.inputIndex = -1
         for i, cell in enumerate(self.nb.cells):
             if "tags" in cell.metadata and self.inputTag in cell.metadata["tags"]:
                 self.inputIndex = i + 1
                 break
             pass
-        
+
         inCell = nbbase.new_code_cell(source="")
         self.nb.cells.insert(self.inputIndex, inCell)
-        
+
         self.outputIndex = len(self.nb.cells)
         outCell = nbbase.new_code_cell(source="")
         self.nb.cells.append(outCell)
-        
 
     def _insertInputCell(self, nb, inputPath: Path):
         newCell = nbbase.new_code_cell(
