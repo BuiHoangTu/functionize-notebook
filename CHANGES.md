@@ -1,3 +1,9 @@
+0.0.12
+=====
+- Cleaner generated file
+- mark generated cells
+- cleaner nb if recursively generate
+
 0.0.11
 =====
 - Fix error on second run
