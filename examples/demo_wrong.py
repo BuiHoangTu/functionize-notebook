@@ -1,7 +1,10 @@
+from pathlib import Path
 from notebook_wrapper import NotebookWrapper
 
 # Path: examples/demo.py
-calculate = NotebookWrapper("./wrong.ipynb", ["a", "b"], ["sum", "div"])
+calculate = NotebookWrapper(
+    Path(__file__).parent / "wrong.ipynb", ["a", "b"], ["sum", "div"]
+)
 
 sum, div = calculate(5, 10)
 
