@@ -21,6 +21,7 @@ class NotebookWrapper:
         allowError: bool = False,
         interactive: bool = False,
         nbContext: Path | None = None,
+        cleanOldGenerated: bool = True,        
     ):
         """_summary_
 
@@ -57,6 +58,8 @@ class NotebookWrapper:
             self.nbContext = nbContext
         else:
             self.nbContext = self.notebookPath.parent
+
+        self.cleanOldGenerated = cleanOldGenerated
 
         pass
 
@@ -166,6 +169,11 @@ class NotebookWrapper:
         
     def _readNotebook(self):
         self.nb = nbformat.read(self.notebookPath, as_version=nbformat.NO_CONVERT)
+        
+        # clean old generated
+        if self.cleanOldGenerated:
+            self.nb.cells = [cell for cell in self.nb.cells if not (cell.metadata.get("generated-by") == "functionize-notebook")]
+        
         self.inputIndex = -1
         for i, cell in enumerate(self.nb.cells):
             if "tags" in cell.metadata and self.inputTag in cell.metadata["tags"]:
