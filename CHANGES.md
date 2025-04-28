@@ -1,3 +1,7 @@
+0.0.13
+=====
+- fix attribute 'cleanOldGenerated' used before set
+
 0.0.12
 =====
 - Cleaner generated file

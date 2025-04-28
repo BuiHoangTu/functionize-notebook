@@ -51,6 +51,8 @@ class NotebookWrapper:
 
         self.interactive = interactive
 
+        self.cleanOldGenerated = cleanOldGenerated
+        
         if not self.interactive:
             self._readNotebook()
 
@@ -58,8 +60,6 @@ class NotebookWrapper:
             self.nbContext = nbContext
         else:
             self.nbContext = self.notebookPath.parent
-
-        self.cleanOldGenerated = cleanOldGenerated
 
         pass
 
